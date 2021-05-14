@@ -2,6 +2,7 @@ package poller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -23,6 +24,8 @@ func (c HttpTwitterClient) GetPoll(url string, bearer string) (data PollFetchRes
 	req.Header.Add("Authorization", "Bearer "+bearer)
 	res, err := c.client.Do(req)
 	if err != nil || res.StatusCode != http.StatusOK {
+		// TODO add log
+		fmt.Printf("%s, code=%v", err, res.StatusCode)
 		return
 	}
 	defer res.Body.Close()
