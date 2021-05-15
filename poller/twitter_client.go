@@ -8,11 +8,13 @@ import (
 	"time"
 )
 
-const streamFilterUrl = "https://api.twitter.com/2/tweets/search/stream/rules"
+const setStreamFilterUrl = "https://api.twitter.com/2/tweets/search/stream/rules"
+const listenMentionUrl = "https://api.twitter.com/2/tweets/search/stream?tweet.fields=conversation_id,created_at"
 
 type TwitterClient interface {
 	GetPoll(url string, bearer string) (PollFetchResponse, error)
 	SetStreamFilter(filterBody string, bearer string) error
+	MentionStream(bearer string) (*MentionElement, error)
 }
 
 type HttpTwitterClient struct {
@@ -38,7 +40,7 @@ func (c HttpTwitterClient) GetPoll(url string, bearer string) (data PollFetchRes
 }
 
 func (c HttpTwitterClient) SetStreamFilter(filterBody string, bearer string) error {
-	req, _ := http.NewRequest("POST", streamFilterUrl, strings.NewReader(filterBody))
+	req, _ := http.NewRequest("POST", setStreamFilterUrl, strings.NewReader(filterBody))
 	addBearer(req, bearer)
 	req.Header.Add("Content-type", "application/json")
 	res, err := c.client.Do(req)
@@ -57,6 +59,21 @@ func (c HttpTwitterClient) SetStreamFilter(filterBody string, bearer string) err
 	return nil
 }
 
+func (c HttpTwitterClient) MentionStream(bearer string) (mention *MentionElement, err error) {
+	req, _ := http.NewRequest("GET", listenMentionUrl, nil)
+	addBearer(req, bearer)
+	res, err := c.client.Do(req)
+	if err != nil {
+		return
+	}
+	if res.StatusCode != http.StatusOK {
+		// TODO: replace with log
+		fmt.Printf("Status: %d", res.StatusCode)
+		return nil, fmt.Errorf("HTTP_STATUS")
+	}
+	err = json.NewDecoder(res.Body).Decode(&mention)
+	return
+}
 func addBearer(req *http.Request, bearer string) {
 	req.Header.Add("Authorization", "Bearer "+bearer)
 }
@@ -84,4 +101,14 @@ type Polls struct {
 }
 type Includes struct {
 	Polls []Polls `json:"polls"`
+}
+
+// Mention result
+type MentionElement struct {
+	Data struct {
+		Text           string    `json:"text"`
+		ID             string    `json:"id"`
+		ConversationID string    `json:"conversation_id"`
+		CreatedAt      time.Time `json:"created_at"`
+	} `json:"data"`
 }
