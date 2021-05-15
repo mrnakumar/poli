@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"mrnakumar.com/poli/mention"
 	"mrnakumar.com/poli/poller"
 )
 
@@ -17,6 +18,8 @@ func main() {
 		fmt.Println("use -h to see help")
 		return
 	}
-	client := CreateHttpTwitterClient()
-	poller.Fetch(client, bearer, tweetId)
+	client := poller.CreateHttpTwitterClient()
+	mentionListener := mention.Listener{Client: client}
+	mentionListener.ListenSelf(bearer)
+	//poller.Fetch(client, bearer, tweetId)
 }

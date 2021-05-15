@@ -1,14 +1,18 @@
-package main
+package poller
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
+const streamFilterUrl = "https://api.twitter.com/2/tweets/search/stream/rules"
+
 type TwitterClient interface {
 	GetPoll(url string, bearer string) (PollFetchResponse, error)
+	SetStreamFilter(filterBody string, bearer string) error
 }
 
 type HttpTwitterClient struct {
@@ -21,7 +25,7 @@ func CreateHttpTwitterClient() HttpTwitterClient {
 }
 func (c HttpTwitterClient) GetPoll(url string, bearer string) (data PollFetchResponse, err error) {
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", "Bearer "+bearer)
+	addBearer(req, bearer)
 	res, err := c.client.Do(req)
 	if err != nil || res.StatusCode != http.StatusOK {
 		// TODO add log
@@ -31,6 +35,30 @@ func (c HttpTwitterClient) GetPoll(url string, bearer string) (data PollFetchRes
 	defer res.Body.Close()
 	err = json.NewDecoder(res.Body).Decode(&data)
 	return
+}
+
+func (c HttpTwitterClient) SetStreamFilter(filterBody string, bearer string) error {
+	req, _ := http.NewRequest("POST", streamFilterUrl, strings.NewReader(filterBody))
+	addBearer(req, bearer)
+	req.Header.Add("Content-type", "application/json")
+	res, err := c.client.Do(req)
+	if err != nil {
+		// TODO: replace with log
+		fmt.Printf("%+v", err)
+		return err
+	}
+	if res.StatusCode != http.StatusCreated {
+		// TODO: replace with log
+		fmt.Printf("status = %d", res.StatusCode)
+	} else {
+		// TODO: replace with log
+		fmt.Println("Stream filter set was successful")
+	}
+	return nil
+}
+
+func addBearer(req *http.Request, bearer string) {
+	req.Header.Add("Authorization", "Bearer "+bearer)
 }
 
 type PollFetchResponse struct {
