@@ -1,10 +1,13 @@
 package poller
 
-import "fmt"
+import (
+	"fmt"
+	"mrnakumar.com/poli"
+)
 
 const pollFetchUrl = "https://api.twitter.com/2/tweets?ids=%s&expansions=attachments.poll_ids&poll.fields=duration_minutes,end_datetime,id,options,voting_status"
 
-func Fetch(client TwitterClient, bearer string, tweetId string) {
+func Fetch(client main.TwitterClient, bearer string, tweetId string) {
 	url := fmt.Sprintf(pollFetchUrl, tweetId)
 	resp, err := client.GetPoll(url, bearer)
 	if err == nil {
@@ -17,7 +20,7 @@ func Fetch(client TwitterClient, bearer string, tweetId string) {
 	}
 }
 
-func keepOnlyClosed(resp *PollFetchResponse) {
+func keepOnlyClosed(resp *main.PollFetchResponse) {
 	if resp.Includes.Polls != nil {
 		copy := resp.Includes.Polls[:0]
 		for _, poll := range resp.Includes.Polls {

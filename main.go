@@ -17,6 +17,6 @@ func main() {
 		fmt.Println("use -h to see help")
 		return
 	}
-	client := poller.CreateHttpTwitterClient()
+	client := CreateHttpTwitterClient()
 	poller.Fetch(client, bearer, tweetId)
 }
