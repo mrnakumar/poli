@@ -2,10 +2,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"github.com/rs/zerolog/log"
+	"mrnakumar.com/poli/constants"
 	"mrnakumar.com/poli/mention"
 	"mrnakumar.com/poli/poller"
+	"os"
 )
+
+const loggerId = "main"
 
 func main() {
 	var bearer string
@@ -17,11 +21,10 @@ func main() {
 	flag.Parse()
 	if bearer == "" || tweetId == "" {
 		flag.PrintDefaults()
-		fmt.Println("use -h to see help")
-		return
+		log.Panic().Str(constants.LoggerId, loggerId).Msg("use -h to see help")
+		os.Exit(constants.INVALID_FLAGS)
 	}
 	client := poller.CreateHttpTwitterClient()
 	mentionListener := mention.Listener{Client: client, MentionId: mentionId}
 	mentionListener.ListenSelf(bearer)
-	//poller.Fetch(client, bearer, tweetId)
 }

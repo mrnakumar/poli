@@ -2,14 +2,17 @@ package poller
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/rs/zerolog/log"
+	"mrnakumar.com/poli/constants"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 const setStreamFilterUrl = "https://api.twitter.com/2/tweets/search/stream/rules"
 const listenMentionUrl = "https://api.twitter.com/2/tweets/search/stream?tweet.fields=conversation_id,created_at"
+const loggerId = "twitter_client"
 
 type TwitterClient interface {
 	GetPoll(url string, bearer string) (PollFetchResponse, error)
@@ -22,17 +25,18 @@ type HttpTwitterClient struct {
 }
 
 func CreateHttpTwitterClient() HttpTwitterClient {
-	return HttpTwitterClient{client: &http.Client{
-	}}
+	return HttpTwitterClient{client: &http.Client{}}
 }
 func (c HttpTwitterClient) GetPoll(url string, bearer string) (data PollFetchResponse, err error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	addBearer(req, bearer)
 	res, err := c.client.Do(req)
-	if err != nil || res.StatusCode != http.StatusOK {
-		// TODO add log
-		fmt.Printf("%s, code=%v", err, res.StatusCode)
+	if err != nil {
+		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("could not get poll for url '%s'", url)
 		return
+	}
+	if res.StatusCode != http.StatusOK {
+		log.Warn().Str(constants.LoggerId, loggerId).Err(err).Msgf("could not get poll for url '%s'. status '%d'", url, res.StatusCode)
 	}
 	defer res.Body.Close()
 	err = json.NewDecoder(res.Body).Decode(&data)
@@ -45,16 +49,13 @@ func (c HttpTwitterClient) SetStreamFilter(filterBody string, bearer string) err
 	req.Header.Add("Content-type", "application/json")
 	res, err := c.client.Do(req)
 	if err != nil {
-		// TODO: replace with log
-		fmt.Printf("%+v", err)
+		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msg("could not set stream filter")
 		return err
 	}
 	if res.StatusCode != http.StatusCreated {
-		// TODO: replace with log
-		fmt.Printf("status = %d", res.StatusCode)
+		log.Warn().Str(constants.LoggerId, loggerId).Msgf("could not set stream filter. status '%d'", res.StatusCode)
 	} else {
-		// TODO: replace with log
-		fmt.Println("Stream filter set was successful")
+		log.Info().Str(constants.LoggerId, loggerId).Msg("set stream filter is successful")
 	}
 	return nil
 }
@@ -64,12 +65,12 @@ func (c HttpTwitterClient) MentionStream(bearer string) (mention *MentionElement
 	addBearer(req, bearer)
 	res, err := c.client.Do(req)
 	if err != nil {
-		return
+		log.Panic().Str(constants.LoggerId, loggerId).Err(err).Msgf("could not listen to mention stream. status '%s'", res.StatusCode)
+		os.Exit(constants.MENTION_STREAM_LISTEN)
 	}
 	if res.StatusCode != http.StatusOK {
-		// TODO: replace with log
-		fmt.Printf("Status: %d", res.StatusCode)
-		return nil, fmt.Errorf("HTTP_STATUS")
+		log.Panic().Str(constants.LoggerId, loggerId).Msgf("could not listen to mention stream. status '%s'", res.StatusCode)
+		os.Exit(constants.MENTION_STREAM_LISTEN)
 	}
 	err = json.NewDecoder(res.Body).Decode(&mention)
 	return
@@ -103,7 +104,6 @@ type Includes struct {
 	Polls []Polls `json:"polls"`
 }
 
-// Mention result
 type MentionElement struct {
 	Data struct {
 		Text           string    `json:"text"`
