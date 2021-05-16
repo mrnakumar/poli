@@ -24,7 +24,7 @@ func main() {
 		log.Panic().Str(constants.LoggerId, loggerId).Msg("use -h to see help")
 		os.Exit(constants.INVALID_FLAGS)
 	}
-	client := poller.CreateHttpTwitterClient()
+	client := poller.CreateHttpTwitterClient(bearer)
 	mentionListener := mention.Listener{Client: client, MentionId: mentionId}
-	mentionListener.ListenSelf(bearer)
+	mentionListener.ListenSelf()
 }

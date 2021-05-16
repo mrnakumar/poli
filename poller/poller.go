@@ -8,7 +8,7 @@ const pollFetchUrl = "https://api.twitter.com/2/tweets?ids=%s&expansions=attachm
 
 func Fetch(client TwitterClient, bearer string, tweetId string) {
 	url := fmt.Sprintf(pollFetchUrl, tweetId)
-	resp, err := client.GetPoll(url, bearer)
+	resp, err := client.GetPoll(url)
 	if err == nil {
 		fmt.Printf("%+v\n", resp)
 		fmt.Printf("After.....\n")
