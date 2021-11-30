@@ -4,8 +4,8 @@ import (
 	"flag"
 	"github.com/rs/zerolog/log"
 	"mrnakumar.com/poli/constants"
-	"mrnakumar.com/poli/mention"
 	"mrnakumar.com/poli/poller"
+	"net/http"
 	"os"
 )
 
@@ -13,18 +13,21 @@ const loggerId = "main"
 
 func main() {
 	var bearer string
-	var tweetId string
-	var mentionId string
 	flag.StringVar(&bearer, "b", "", "<Mandatory> Bearer Token")
-	flag.StringVar(&tweetId, "t", "", "<Mandatory> Tweet id")
-	flag.StringVar(&mentionId, "m", "", "<Mandatory> Id to look for in mentions")
 	flag.Parse()
-	if bearer == "" || tweetId == "" {
+	if bearer == "" {
 		flag.PrintDefaults()
 		log.Panic().Str(constants.LoggerId, loggerId).Msg("use -h to see help")
 		os.Exit(constants.INVALID_FLAGS)
 	}
-	client := poller.CreateHttpTwitterClient(bearer)
-	mentionListener := mention.Listener{Client: client, MentionId: mentionId}
-	mentionListener.ListenSelf()
+	client := poller.HttpTwitterClient{Bearer: bearer, Client: &http.Client{}}
+	if tweets, err := client.GetTweets("37365807"); err == nil {
+		for _, tweet := range tweets.Tweets {
+			log.Info().Msg(tweet.Text)
+			log.Info().Msg("\n")
+		}
+	} else {
+		log.Panic().Str(constants.LoggerId, loggerId).Err(err)
+	}
+
 }
