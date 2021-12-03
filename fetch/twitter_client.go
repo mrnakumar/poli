@@ -1,4 +1,4 @@
-package poller
+package fetch
 
 import (
 	"bytes"

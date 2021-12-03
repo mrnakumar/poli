@@ -4,7 +4,7 @@ import (
 	"flag"
 	"github.com/rs/zerolog/log"
 	"mrnakumar.com/poli/constants"
-	"mrnakumar.com/poli/poller"
+	"mrnakumar.com/poli/fetch"
 	"net/http"
 	"os"
 	"time"
@@ -21,13 +21,13 @@ func main() {
 		log.Panic().Str(constants.LoggerId, loggerId).Msg("use -h to see help")
 		os.Exit(constants.INVALID_FLAGS)
 	}
-	client := poller.HttpTwitterClient{Bearer: bearer, Client: &http.Client{}}
+	client := fetch.HttpTwitterClient{Bearer: bearer, Client: &http.Client{}}
 	//getTweets(client)
 	findUser(client)
 
 }
 
-func findUser(client poller.HttpTwitterClient) {
+func findUser(client fetch.HttpTwitterClient) {
 	userName := "Profdilipmandal"
 	response, err := client.FindUser(userName)
 	if err != nil {
@@ -38,7 +38,7 @@ func findUser(client poller.HttpTwitterClient) {
 	}
 }
 
-func getTweets(client poller.HttpTwitterClient) {
+func getTweets(client fetch.HttpTwitterClient) {
 	location, _ := time.LoadLocation("UTC")
 	startTime := time.Now().In(location).AddDate(0, 0, -1).Format(time.RFC3339)
 	if tweets, err := client.GetTweets("37365807", 100, "", startTime); err == nil {
