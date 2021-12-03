@@ -114,7 +114,7 @@ func getRequest(c *HttpTwitterClient, url string, v interface{}) error {
 		msg, err := ioutil.ReadAll(res.Body)
 		if err == nil && len(msg) > 0 {
 			log.Warn().Str(constants.LoggerId, loggerId).Err(err).
-				Msgf("failed to parse error response. received status code '%d', message '%s' for url '%s'",
+				Msgf("received status code '%d', message '%s' for url '%s'",
 					res.StatusCode, msg, url)
 		}
 		return fmt.Errorf("unknown status code '%d' for url '%s'", res.StatusCode, url)
