@@ -1,6 +1,7 @@
 package poller
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +16,11 @@ import (
 
 const loggerId = "twitter_client"
 const userTweetsUrl = "https://api.twitter.com/2/users/:id/tweets"
+const userUrl = "https://api.twitter.com/2/users/by/username/:username?user.fields=profile_image_url"
 
 type TweetId = string
 type TwitterUserId = string
+type TwitterUserName = string
 type StartTimeISO8601ZoneUTC = string
 
 type HttpTwitterClient struct {
@@ -41,8 +44,6 @@ func (c HttpTwitterClient) GetTweets(userId TwitterUserId, tweetsPerRequest uint
 
 	result := &TweetsResponse{}
 	for {
-		log.Info().Str(constants.LoggerId, loggerId).Msg("Entering loop")
-
 		var tweets TweetsResponse
 		err = getRequest(&c, url, &tweets)
 		if err == nil {
@@ -82,6 +83,21 @@ func (c HttpTwitterClient) GetTweets(userId TwitterUserId, tweetsPerRequest uint
 	return result, err
 }
 
+// FindUser
+// returns error if userName not found
+func (c HttpTwitterClient) FindUser(userName TwitterUserName) (*UserResponse, error) {
+	url := strings.ReplaceAll(userUrl, ":username", userName)
+	var response UserResponse
+	err := getRequest(&c, url, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Errors != nil {
+		return nil, errors.New(response.Errors[0].Title)
+	}
+	return &response, nil
+}
+
 func getRequest(c *HttpTwitterClient, url string, v interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -93,26 +109,27 @@ func getRequest(c *HttpTwitterClient, url string, v interface{}) error {
 		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("failed to get for url '%s'", url)
 		return fmt.Errorf("request failed for url '%s'", url)
 	}
+	defer closeOrLogWarningIfFailed(res.Body)
 	if res.StatusCode != http.StatusOK {
 		msg, err := ioutil.ReadAll(res.Body)
-		if err == nil {
+		if err == nil && len(msg) > 0 {
 			log.Warn().Str(constants.LoggerId, loggerId).Err(err).
 				Msgf("failed to parse error response. received status code '%d', message '%s' for url '%s'",
 					res.StatusCode, msg, url)
 		}
 		return fmt.Errorf("unknown status code '%d' for url '%s'", res.StatusCode, url)
 	}
-	defer closeOrLogWarningIfFailed(res.Body)
-	err = json.NewDecoder(res.Body).Decode(&v)
-	if err != nil {
-		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("failed to decode response for url '%s", url)
-		body, err := ioutil.ReadAll(res.Body)
-		if err == nil {
-			return fmt.Errorf("failed to decode response body '%s' for url '%s'", string(body), url)
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err == nil && len(bodyBytes) > 0 {
+		err = json.NewDecoder(bytes.NewBuffer(bodyBytes)).Decode(&v)
+		if err != nil {
+			log.Error().Str(constants.LoggerId, loggerId).Err(err)
+			return fmt.Errorf("failed to decode response body '%s' for url '%s'", string(bodyBytes), url)
 		}
-		return fmt.Errorf("failed to decode response body for url '%s'", url)
+		return nil
+	} else {
+		return fmt.Errorf("failed to read response body for url '%s'", url)
 	}
-	return err
 }
 
 func tweetsUrl(userId TwitterUserId, tweetsPerRequest uint8, paginationToken string, sinceId TweetId,
@@ -167,4 +184,16 @@ type Meta struct {
 	NewestId    string `json:"newest_id"`
 	NextToken   string `json:"next_token"`
 	ResultCount uint8  `json:"result_count"`
+}
+
+type UserResponse struct {
+	Data struct {
+		Id              string `json:"id"`
+		Name            string `json:"name"`
+		UserName        string `json:"username"`
+		ProfileImageUrl string `json:"profile_image_url"`
+	}
+	Errors []struct {
+		Title string
+	}
 }

@@ -22,6 +22,23 @@ func main() {
 		os.Exit(constants.INVALID_FLAGS)
 	}
 	client := poller.HttpTwitterClient{Bearer: bearer, Client: &http.Client{}}
+	//getTweets(client)
+	findUser(client)
+
+}
+
+func findUser(client poller.HttpTwitterClient) {
+	userName := "Profdilipmandal"
+	response, err := client.FindUser(userName)
+	if err != nil {
+		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("Failed to find username '%s'", userName)
+	} else {
+		log.Info().Str(constants.LoggerId, loggerId).Msgf("%v",
+			response.Data)
+	}
+}
+
+func getTweets(client poller.HttpTwitterClient) {
 	location, _ := time.LoadLocation("UTC")
 	startTime := time.Now().In(location).AddDate(0, 0, -1).Format(time.RFC3339)
 	if tweets, err := client.GetTweets("37365807", 100, "", startTime); err == nil {
@@ -31,5 +48,4 @@ func main() {
 	} else {
 		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msg("OOPs")
 	}
-
 }
