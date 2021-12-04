@@ -22,9 +22,24 @@ func main() {
 		os.Exit(constants.INVALID_FLAGS)
 	}
 	client := fetch.HttpTwitterClient{Bearer: bearer, Client: &http.Client{}}
+	database := fetch.GetDb("localhost", "poli", "password", "poli", false)
+	defer func(ds *fetch.Database) {
+		err := ds.Close()
+		if err != nil {
+			log.Error().Str(constants.LoggerId, loggerId).Err(err).Msg("failed to close datastore")
+		}
+	}(database)
 	//getTweets(client)
-	findUser(client)
-
+	//findUser(client)
+	fetcher := fetch.Fetcher{
+		TwitterClient: client,
+		Database:      database,
+	}
+	//err := fetcher.AddUser("jat_samaaj")
+	err := fetcher.GetUserTweets("JAT_SAMAAJ")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func findUser(client fetch.HttpTwitterClient) {

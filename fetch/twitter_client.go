@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const loggerId = "twitter_client"
+const twitterClientLoggerId = "twitter_client"
 const userTweetsUrl = "https://api.twitter.com/2/users/:id/tweets"
 const userUrl = "https://api.twitter.com/2/users/by/username/:username?user.fields=profile_image_url"
 
@@ -68,7 +68,7 @@ func (c HttpTwitterClient) GetTweets(userId TwitterUserId, tweetsPerRequest uint
 			}
 			if tweets.Meta.NextToken == "" {
 				// not sufficient tweets. means end reached
-				log.Info().Str(constants.LoggerId, loggerId).Msgf("received '%d' tweets for userId '%s'.",
+				log.Info().Str(constants.LoggerId, twitterClientLoggerId).Msgf("received '%d' tweets for userId '%s'.",
 					len(tweets.Tweets), userId)
 				break
 			}
@@ -78,7 +78,7 @@ func (c HttpTwitterClient) GetTweets(userId TwitterUserId, tweetsPerRequest uint
 		}
 		url, _ = tweetsUrl(userId, tweetsPerRequest, result.Meta.NextToken, "", "")
 	}
-	log.Info().Str(constants.LoggerId, loggerId).Msgf("returning a total of '%d' tweets for user id '%s'.",
+	log.Info().Str(constants.LoggerId, twitterClientLoggerId).Msgf("returning a total of '%d' tweets for user id '%s'.",
 		len(result.Tweets), userId)
 	return result, err
 }
@@ -106,14 +106,14 @@ func getRequest(c *HttpTwitterClient, url string, v interface{}) error {
 	addBearer(req, c.Bearer)
 	res, err := c.Client.Do(req)
 	if err != nil {
-		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("failed to get for url '%s'", url)
+		log.Error().Str(constants.LoggerId, twitterClientLoggerId).Err(err).Msgf("failed to get for url '%s'", url)
 		return fmt.Errorf("request failed for url '%s'", url)
 	}
 	defer closeOrLogWarningIfFailed(res.Body)
 	if res.StatusCode != http.StatusOK {
 		msg, err := ioutil.ReadAll(res.Body)
 		if err == nil && len(msg) > 0 {
-			log.Warn().Str(constants.LoggerId, loggerId).Err(err).
+			log.Warn().Str(constants.LoggerId, twitterClientLoggerId).Err(err).
 				Msgf("received status code '%d', message '%s' for url '%s'",
 					res.StatusCode, msg, url)
 		}
@@ -123,7 +123,7 @@ func getRequest(c *HttpTwitterClient, url string, v interface{}) error {
 	if err == nil && len(bodyBytes) > 0 {
 		err = json.NewDecoder(bytes.NewBuffer(bodyBytes)).Decode(&v)
 		if err != nil {
-			log.Error().Str(constants.LoggerId, loggerId).Err(err)
+			log.Error().Str(constants.LoggerId, twitterClientLoggerId).Err(err)
 			return fmt.Errorf("failed to decode response body '%s' for url '%s'", string(bodyBytes), url)
 		}
 		return nil
@@ -162,7 +162,7 @@ func addBearer(req *http.Request, bearer string) {
 func closeOrLogWarningIfFailed(body io.ReadCloser) {
 	err := body.Close()
 	if err != nil {
-		log.Warn().Str(constants.LoggerId, loggerId).Err(err).Msg("Failed to close response body")
+		log.Warn().Str(constants.LoggerId, twitterClientLoggerId).Err(err).Msg("Failed to close response body")
 	}
 }
 
