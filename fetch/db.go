@@ -57,14 +57,14 @@ func (ds *Database) GetUser(userName string) (*User, error) {
 	return &User{Id: id, Name: name, ProfilePictureUrl: profilePictureUrl}, nil
 }
 
-func (ds *Database) UpdateSinceId(userId TwitterUserId, kind string, since TweetId) error {
+func (ds *Database) UpdateSinceId(userId TwitterUserId, kind WaterMarkType, since TweetId) error {
 	query := fmt.Sprintf("INSERT INTO checkpoint VALUES ('%s', '%s', '%s') ON CONFLICT(user_id, type) DO UPDATE SET watermark = '%s' ", userId, kind, since, since)
 	_, err := ds.DB.Exec(query)
 	return err
 }
 
 func (ds *Database) GetSinceId(userId TwitterUserId) (TweetId, error) {
-	rows, err := ds.DB.Query(fmt.Sprintf("SELECT watermark FROM checkpoint WHERE user_id='%s' AND type='twitter'", userId))
+	rows, err := ds.DB.Query(fmt.Sprintf("SELECT watermark FROM checkpoint WHERE user_id='%s' AND type='%s'", userId, tweetWaterMark))
 	if err != nil {
 		return "", err
 	}

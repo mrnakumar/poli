@@ -11,6 +11,9 @@ import (
 
 const fetcherLoggerId = "fetcher"
 const tweetFetchSize = 100 // maximum allowed
+const tweetWaterMark WaterMarkType = "twitter"
+
+type WaterMarkType = string
 
 type Fetcher struct {
 	TwitterClient HttpTwitterClient
@@ -86,25 +89,27 @@ func (f *Fetcher) GetUserTweets(userName string) error {
 		for _, tweetsResponse := range tweetsResponse.Tweets {
 			_, err = stmt.Exec(tweetsResponse.Id, tweetsResponse.Text, tweetsResponse.Lang, user.Id)
 			if err != nil {
-				logFailure("saving tweets to datastore", err)
-				rollbackOrLogOnError(txn)
-				return err
-			}
-			_, err = stmt.Exec()
-			if err != nil {
-				logFailure("saving tweets to datastore", err)
-				return err
-			}
-			err = stmt.Close()
-			if err != nil {
-				logFailure("saving tweets to datastore", err)
+				logFailure("loop: saving tweets to datastore", err)
 				rollbackOrLogOnError(txn)
 				return err
 			}
 		}
-		err = f.Database.UpdateSinceId(user.Id, "twitter", tweetsResponse.Meta.NewestId)
+		_, err = stmt.Exec()
+		if err != nil {
+			logFailure("statement execute: saving tweets to datastore", err)
+			return err
+		}
+
+		err = f.Database.UpdateSinceId(user.Id, tweetWaterMark, tweetsResponse.Meta.NewestId)
 		if err != nil {
 			logFailure("checkpointing last read tweet id to datastore", err)
+			rollbackOrLogOnError(txn)
+			return err
+		}
+		err = stmt.Close()
+		if err != nil {
+			logFailure("statement close: saving tweets to datastore", err)
+			rollbackOrLogOnError(txn)
 			return err
 		}
 		return txn.Commit()
