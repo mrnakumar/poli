@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -39,6 +40,33 @@ func (f *Fetcher) AddUser(userName string) error {
 	return err
 }
 
+func (f *Fetcher) GetAllUserTweets() error {
+	users, err := f.Database.GetAllUsers()
+	if err != nil {
+		log.Error().Str(constants.LoggerId, fetcherLoggerId).Err(err).Msg("failed to get all users from DB")
+		return errors.New("could not get users from DB")
+	} else if users == nil || len(users) == 0 {
+		log.Info().Str(constants.LoggerId, fetcherLoggerId).Err(err).Msg("no users in DB")
+		return errors.New("no users to get tweets for")
+	} else {
+		var successCount = 0
+		for _, user := range users {
+			err = f.GetUserTweets(user.Name)
+			if err == nil {
+				successCount++
+			} else {
+				log.Error().Str(constants.LoggerId, fetcherLoggerId).Err(err).Msgf("error in getting tweets for user '%s'", user.Name)
+			}
+		}
+		log.Info().Str(constants.LoggerId, fetcherLoggerId).Err(err).Msgf("success in fetching tweets for '%d' users out of a total of '%d'", successCount, len(users))
+		if successCount == len(users) {
+			return nil
+		} else {
+			return fmt.Errorf("failed to get tweets for '%d' users", len(users)-successCount)
+		}
+	}
+
+}
 func (f *Fetcher) GetUserTweets(userName string) error {
 	logFailure := func(failure string, err error) {
 		failureMsg := fmt.Sprintf("failed in '%s' for userName '%s'", failure, userName)

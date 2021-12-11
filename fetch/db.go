@@ -37,6 +37,26 @@ func GetDb(host string, userName string, password string, dbName string, forTest
 	return db
 }
 
+func (ds *Database) GetAllUsers() ([]*User, error) {
+	rows, err := ds.DB.Query("SELECT * FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	var users []*User
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func (ds *Database) GetUser(userName string) (*User, error) {
 	rows, err := ds.DB.Query(fmt.Sprintf("SELECT * FROM users where name LIKE '%s'", userName))
 	if err != nil {
@@ -50,11 +70,7 @@ func (ds *Database) GetUser(userName string) (*User, error) {
 	if !hasNext {
 		return nil, nil
 	}
-	var id string
-	var name string
-	var profilePictureUrl string
-	err = rows.Scan(&id, &name, &profilePictureUrl)
-	return &User{Id: id, Name: name, ProfilePictureUrl: profilePictureUrl}, nil
+	return scanUser(rows)
 }
 
 func (ds *Database) UpdateSinceId(userId TwitterUserId, kind WaterMarkType, since TweetId) error {
@@ -81,10 +97,18 @@ func (ds *Database) GetSinceId(userId TwitterUserId) (TweetId, error) {
 	return waterMark, err
 }
 
+func scanUser(rows *sql.Rows) (*User, error) {
+	var id string
+	var name string
+	var profilePictureUrl string
+	err := rows.Scan(&id, &name, &profilePictureUrl)
+	return &User{Id: id, Name: name, ProfilePictureUrl: profilePictureUrl}, err
+}
+
 func closeRows(rows *sql.Rows) {
 	err := rows.Close()
 	if err != nil {
-		log.Warn().Str(dsLoggerId, dsLoggerId).Err(err).Msg("failed not close result set")
+		log.Warn().Str(dsLoggerId, dsLoggerId).Err(err).Msg("failed to close result set")
 	}
 }
 
