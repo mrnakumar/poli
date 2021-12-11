@@ -58,7 +58,8 @@ func (ds *Database) GetUser(userName string) (*User, error) {
 }
 
 func (ds *Database) UpdateSinceId(userId TwitterUserId, kind string, since TweetId) error {
-	_, err := ds.DB.Exec(fmt.Sprintf("UPDATE checkpoint SET watermark = '%s' WHERE user_id='%s' AND type='%s'", since, userId, kind))
+	query := fmt.Sprintf("INSERT INTO checkpoint VALUES ('%s', '%s', '%s') ON CONFLICT(user_id, type) DO UPDATE SET watermark = '%s' ", userId, kind, since, since)
+	_, err := ds.DB.Exec(query)
 	return err
 }
 

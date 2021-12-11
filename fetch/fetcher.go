@@ -102,7 +102,7 @@ func (f *Fetcher) GetUserTweets(userName string) error {
 				return err
 			}
 		}
-		err = f.Database.UpdateSinceId(user.Id, "tweet", tweetsResponse.Meta.NewestId)
+		err = f.Database.UpdateSinceId(user.Id, "twitter", tweetsResponse.Meta.NewestId)
 		if err != nil {
 			logFailure("checkpointing last read tweet id to datastore", err)
 			return err
