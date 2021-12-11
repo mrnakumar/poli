@@ -8,7 +8,6 @@ import (
 	"mrnakumar.com/poli/fetch"
 	"net/http"
 	"os"
-	"time"
 )
 
 const loggerId = "main"
@@ -90,16 +89,6 @@ func parseFlags() Flags {
 	validateOrExit(flags)
 	return flags
 }
-func findUser(client fetch.HttpTwitterClient) {
-	userName := "Profdilipmandal"
-	response, err := client.FindUser(userName)
-	if err != nil {
-		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msgf("Failed to find username '%s'", userName)
-	} else {
-		log.Info().Str(constants.LoggerId, loggerId).Msgf("%v",
-			response.Data)
-	}
-}
 
 func validateOrExit(flags Flags) {
 	if flags.bearerToken == "" {
@@ -122,17 +111,6 @@ func printHelpAndExit(msg string) {
 	}
 	log.Error().Str(constants.LoggerId, loggerId).Msg("use -h to see help")
 	os.Exit(constants.INVALID_FLAGS)
-}
-func getTweets(client fetch.HttpTwitterClient) {
-	location, _ := time.LoadLocation("UTC")
-	startTime := time.Now().In(location).AddDate(0, 0, -1).Format(time.RFC3339)
-	if tweets, err := client.GetTweets("37365807", 100, "", startTime); err == nil {
-		for _, tweet := range tweets.Tweets {
-			log.Info().Msgf("id='%s', lang='%s', text='%s'\n", tweet.Id, tweet.Lang, tweet.Text)
-		}
-	} else {
-		log.Error().Str(constants.LoggerId, loggerId).Err(err).Msg("OOPs")
-	}
 }
 
 func closeDb(ds *fetch.Database) {
