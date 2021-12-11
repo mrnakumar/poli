@@ -1,0 +1,7 @@
+{
+  "create-table": [
+    "CREATE TABLE users (id varchar (120) NOT NULL PRIMARY KEY, name varchar(500) NOT NULL, profile_image varchar(500));",
+    "CREATE TABLE tweets (id varchar (120) NOT NULL PRIMARY KEY, text varchar(400) NOT NULL, lang varchar(4) NOT NULL, user_id varchar (120) NOT NULL);",
+    "CREATE TABLE checkpoint (user_id varchar(200) NOT NULL, type varchar(20) NOT NULL, watermark varchar(200) NOT NULL, PRIMARY KEY (user_id, type));"
+  ]
+}
